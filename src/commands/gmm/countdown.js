@@ -3,7 +3,8 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('gmm')
-        .setDescription('Hoelang het wachten tot Graspop is')
+        .setDescription('Graspop Metal Meeting commands')
+
         .addSubcommand(subcommand =>
             subcommand
                 .setName('countdown')
@@ -11,22 +12,31 @@ export default {
         ),
 
     async execute(interaction) {
-        if (
-            !interaction.isChatInputCommand() ||
-            interaction.commandName !== 'gmm' ||
-            interaction.options.getSubcommand() !== 'countdown'
-        ) {
-            return;
-        }
+        console.log('GMM command uitgevoerd!');
+        console.log('Command:', interaction.commandName);
 
         try {
-            await interaction.deferReply({ ephemeral: true });
+            // Controleer of de juiste subcommand wordt gebruikt
+            const subcommand = interaction.options.getSubcommand();
+
+            console.log('Subcommand:', subcommand);
+
+            if (subcommand !== 'countdown') {
+                return await interaction.reply({
+                    content: '❌ Onbekende subcommand.',
+                    ephemeral: true
+                });
+            }
+
+            // Discord laten weten dat de bot bezig is
+            await interaction.deferReply();
 
             const now = Date.now();
 
-            // 17 juni 2027 00:00 CEST
-            // CEST = UTC+2
-            // Dus: 16 juni 2027 22:00 UTC
+            // Graspop 2027
+            // 17 juni 2027, 00:00 CEST
+            // JavaScript maanden beginnen bij 0
+            // Juni = 5
             const target = Date.UTC(
                 2027,
                 5,
@@ -38,57 +48,79 @@ export default {
 
             const difference = target - now;
 
+            // Unix timestamp voor Discord
+            const unixTimestamp = Math.floor(target / 1000);
+
+            // Als Graspop al begonnen is
             if (difference <= 0) {
                 const embed = new EmbedBuilder()
                     .setColor(0x00ff00)
                     .setTitle('🎪 Graspop Countdown')
-                    .setDescription(
-                        '**17 juni 2027 om 00:00 CEST is bereikt!** 🎉'
-                    )
+                    .setDescription([
+                        '# 🎉 Graspop is begonnen!',
+                        '',
+                        '📅 **17 juni 2027**',
+                        `🗓️ <t:${unixTimestamp}:F>`
+                    ].join('\n'))
                     .setTimestamp();
 
-                await interaction.editReply({
+                return await interaction.editReply({
                     embeds: [embed]
                 });
-
-                return;
             }
 
+            // Tijd berekenen
             const totalSeconds = Math.floor(difference / 1000);
 
             const days = Math.floor(totalSeconds / 86400);
-            const hours = Math.floor((totalSeconds % 86400) / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+            const hours = Math.floor(
+                (totalSeconds % 86400) / 3600
+            );
+
+            const minutes = Math.floor(
+                (totalSeconds % 3600) / 60
+            );
+
             const seconds = totalSeconds % 60;
 
-            const unixTimestamp = Math.floor(target / 1000);
-
+            // Embed maken
             const embed = new EmbedBuilder()
                 .setColor(0xff0000)
                 .setTitle('🎪 Graspop Countdown')
                 .setDescription([
                     '# ⏳ Hoelang nog wachten tot Graspop?',
                     '',
-                    `**${days} dagen**`,
-                    `**${hours} uur**`,
-                    `**${minutes} minuten**`,
-                    `**${seconds} seconden**`,
+                    `📆 **${days} dagen**`,
+                    `⏰ **${hours} uur**`,
+                    `🕐 **${minutes} minuten**`,
+                    `⚡ **${seconds} seconden**`,
                     '',
-                    '📅 **17 juni 2027**',
-                    '🕛 **00:00 CEST**',
+                    '━━━━━━━━━━━━━━━━━━',
+                    '',
+                    '📅 **Graspop 2027**',
+                    '🕛 **17 juni 2027 om 00:00 CEST**',
                     '',
                     `🗓️ <t:${unixTimestamp}:F>`,
-                    `⏱️ <t:${unixTimestamp}:R>`
+                    `⏱️ Begint <t:${unixTimestamp}:R>`
                 ].join('\n'))
-                .setTimestamp();
+                .setTimestamp()
+                .setFooter({
+                    text: 'Graspop Metal Meeting 2027 🤘'
+                });
 
+            // Embed versturen
             await interaction.editReply({
                 embeds: [embed]
             });
 
         } catch (error) {
-            console.error('Failed to generate Graspop countdown:', error);
+            console.error(
+                'Failed to generate Graspop countdown:',
+                error
+            );
 
+            // Foutmelding sturen
             if (interaction.deferred || interaction.replied) {
                 await interaction.editReply({
                     content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
@@ -96,7 +128,7 @@ export default {
                 });
             } else {
                 await interaction.reply({
-                    content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
+                    content: '❌ Er ging iets mis.',
                     ephemeral: true
                 });
             }
