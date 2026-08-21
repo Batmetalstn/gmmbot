@@ -1,1 +1,115 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+from datetime import datetime, timezone
+
+TOKEN = "JOUW_BOT_TOKEN"
+
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+
+@bot.event
+async def on_ready():
+    print(f"Ingelogd als {bot.user}")
+
+    try:
+        synced = await bot.tree.sync()
+        print(f"{len(synced)} slash commands gesynchroniseerd.")
+    except Exception as e:
+        print(f"Fout bij synchroniseren: {e}")
+
+
+@bot.tree.command(
+    name="gmm",
+    description="Gebruik /gmm timer voor de countdown naar 20 juni."
+)
+@app_commands.describe(actie="Welke GMM-functie wil je gebruiken?")
+@app_commands.choices(actie=[
+    app_commands.Choice(name="timer", value="timer")
+])
+async def gmm(
+    interaction: discord.Interaction,
+    actie: app_commands.Choice[str]
+):
+
+    if actie.value != "timer":
+        await interaction.response.send_message(
+            "❌ Onbekende actie.",
+            ephemeral=True
+        )
+        return
+
+    # Eerstvolgende 20 juni om 00:00 UTC
+    now = datetime.now(timezone.utc)
+
+    target = datetime(
+        year=now.year,
+        month=6,
+        day=20,
+        hour=0,
+        minute=0,
+        second=0,
+        tzinfo=timezone.utc
+    )
+
+    # Als 20 juni van dit jaar voorbij is,
+    # gebruik dan 20 juni van volgend jaar.
+    if now >= target:
+        target = datetime(
+            year=now.year + 1,
+            month=6,
+            day=20,
+            hour=0,
+            minute=0,
+            second=0,
+            tzinfo=timezone.utc
+        )
+
+    verschil = target - now
+
+    totaal_seconden = int(verschil.total_seconds())
+
+    dagen = totaal_seconden // 86400
+    uren = (totaal_seconden % 86400) // 3600
+    minuten = (totaal_seconden % 3600) // 60
+    seconden = totaal_seconden % 60
+
+    embed = discord.Embed(
+        title="⏳ GMM Countdown",
+        description="**De countdown naar 20 juni is gestart!**",
+        color=discord.Color.blue()
+    )
+
+    embed.add_field(
+        name="📅 Datum",
+        value=f"<t:{int(target.timestamp())}:F>",
+        inline=False
+    )
+
+    embed.add_field(
+        name="⏱️ Nog te gaan",
+        value=(
+            f"**{dagen:,} dagen**\n"
+            f"**{uren} uur**\n"
+            f"**{minuten} minuten**\n"
+            f"**{seconden} seconden**"
+        ).replace(",", "."),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🕐 Live countdown",
+        value=f"<t:{int(target.timestamp())}:R>",
+        inline=False
+    )
+
+    embed.set_footer(
+        text=f"Aangevraagd door {interaction.user.display_name}"
+    )
+
+    await interaction.response.send_message(embed=embed)
+
+
+bot.run(TOKEN)
 
