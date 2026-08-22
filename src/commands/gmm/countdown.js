@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+client.on('messageCreate', async message => {
+    console.log('Bericht ontvangen:', message.content);
+
+    if (message.author.bot) return;
+    import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -132,6 +136,7 @@ export default {
                     ephemeral: true
                 });
             }
+            });
         }
     }
 };
