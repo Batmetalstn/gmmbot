@@ -1,7 +1,6 @@
 client.on('messageCreate', message => {
     console.log('Bericht ontvangen:', message.content);
 });
-
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export default {
