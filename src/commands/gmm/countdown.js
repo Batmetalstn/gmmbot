@@ -1,22 +1,16 @@
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
-import 'dotenv/config';
+import { Client, GatewayIntentBits } from 'discord.js';
+// import { LavalinkManager } from "lavalink-client"; // <-- Zet hier // voor
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
 });
 
-client.commands = new Collection();
-
-/*
+/* --- DIT HELE BLOK TIJDELIJK UITSCHAKELEN MET DEZE SLASHES ---
 client.lavalink = new LavalinkManager({
     nodes: [
         {
-            authorization: "your_password",
-            host: "your_host",
+            authorization: "...",
+            host: "...",
             port: 443,
             id: "Jirayu"
         }
@@ -25,30 +19,13 @@ client.lavalink = new LavalinkManager({
         client.guilds.cache.get(guildId)?.shard.send(payload);
     }
 });
-*/
+------------------------------------------------------------- */
 
 client.on('ready', async () => {
-    console.log(`Bot is succesvol online als ${client.user.tag}`);
+    console.log(`Bot is online als ${client.user.tag}`);
     
-    // await client.lavalink.init(client.user.id);
-});
-
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-    if (!command) return;
-
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        console.error(error);
-        if (interaction.deferred || interaction.replied) {
-            await interaction.followUp({ content: 'Er ging iets mis bij het uitvoeren van dit commando!', ephemeral: true });
-        } else {
-            await interaction.reply({ content: 'Er ging iets mis bij het uitvoeren van dit commando!', ephemeral: true });
-        }
-    }
+    // Zorg dat de .init() of .start() van lavalink ook is uitgeschakeld:
+    // await client.lavalink.init(client.user.id); 
 });
 
 client.login(process.env.TOKEN);
