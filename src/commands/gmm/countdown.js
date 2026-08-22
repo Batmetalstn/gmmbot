@@ -1,9 +1,11 @@
- import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('gmm')
         .setDescription('Graspop Metal Meeting commands')
+        .setDMPermission(false)
 
         .addSubcommand(subcommand =>
             subcommand
@@ -12,31 +14,26 @@ export default {
         ),
 
     async execute(interaction) {
-        console.log('GMM command uitgevoerd!');
-        console.log('Command:', interaction.commandName);
+        // Discord laten weten dat de bot bezig is
+        const deferred = await InteractionHelper.safeDefer(interaction);
+
+        if (!deferred) {
+            return;
+        }
 
         try {
-            // Controleer of de juiste subcommand wordt gebruikt
             const subcommand = interaction.options.getSubcommand();
 
-            console.log('Subcommand:', subcommand);
-
             if (subcommand !== 'countdown') {
-                return await interaction.reply({
-                    content: '❌ Onbekende subcommand.',
-                    ephemeral: true
+                return await InteractionHelper.safeEditReply(interaction, {
+                    content: '❌ Onbekende subcommand.'
                 });
             }
 
-            // Discord laten weten dat de bot bezig is
-            await interaction.deferReply();
-
             const now = Date.now();
 
-            // Graspop 2027
             // 17 juni 2027, 00:00 CEST
-            // JavaScript maanden beginnen bij 0
-            // Juni = 5
+            // JavaScript: januari = 0, dus juni = 5
             const target = Date.UTC(
                 2027,
                 5,
@@ -48,10 +45,9 @@ export default {
 
             const difference = target - now;
 
-            // Unix timestamp voor Discord
             const unixTimestamp = Math.floor(target / 1000);
 
-            // Als Graspop al begonnen is
+            // Als Graspop begonnen is
             if (difference <= 0) {
                 const embed = new EmbedBuilder()
                     .setColor(0x00ff00)
@@ -64,7 +60,7 @@ export default {
                     ].join('\n'))
                     .setTimestamp();
 
-                return await interaction.editReply({
+                return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed]
                 });
             }
@@ -109,8 +105,7 @@ export default {
                     text: 'Graspop Metal Meeting 2027 🤘'
                 });
 
-            // Embed versturen
-            await interaction.editReply({
+            await InteractionHelper.safeEditReply(interaction, {
                 embeds: [embed]
             });
 
@@ -120,18 +115,10 @@ export default {
                 error
             );
 
-            // Foutmelding sturen
-            if (interaction.deferred || interaction.replied) {
-                await interaction.editReply({
-                    content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
-                    embeds: []
-                });
-            } else {
-                await interaction.reply({
-                    content: '❌ Er ging iets mis.',
-                    ephemeral: true
-                });
-            }
+            await InteractionHelper.safeEditReply(interaction, {
+                content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
+                embeds: []
+            });
         }
     }
 };
