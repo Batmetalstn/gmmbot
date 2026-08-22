@@ -6,7 +6,6 @@ export default {
         .setName('gmm')
         .setDescription('Graspop Metal Meeting commands')
         .setDMPermission(false)
-
         .addSubcommand(subcommand =>
             subcommand
                 .setName('countdown')
@@ -14,37 +13,33 @@ export default {
         ),
 
     async execute(interaction) {
-        // Discord laten weten dat de bot bezig is
-        const deferred = await InteractionHelper.safeDefer(interaction);
+        // Controleer of de interactie nog geldig is
+        if (!interaction || interaction.replied || interaction.deferred) return;
 
-        if (!deferred) {
-            return;
+        // Veilig deferren om "Interaction failed" te voorkomen bij trage verbindingen
+        let deferred = false;
+        try {
+            deferred = await InteractionHelper.safeDefer(interaction);
+        } catch (deferError) {
+            console.error('Defer mislukt, we proberen direct te antwoorden:', deferError);
         }
 
         try {
             const subcommand = interaction.options.getSubcommand();
 
             if (subcommand !== 'countdown') {
-                return await InteractionHelper.safeEditReply(interaction, {
-                    content: '❌ Onbekende subcommand.'
-                });
+                if (deferred) {
+                    return await InteractionHelper.safeEditReply(interaction, { content: '❌ Onbekende subcommand.' });
+                } else {
+                    return await interaction.reply({ content: '❌ Onbekende subcommand.', ephemeral: true });
+                }
             }
 
             const now = Date.now();
 
-            // 17 juni 2027, 00:00 CEST
-            // JavaScript: januari = 0, dus juni = 5
-            const target = Date.UTC(
-                2027,
-                5,
-                16,
-                22,
-                0,
-                0
-            );
-
+            // 17 juni 2027, 00:00 CEST (Januari = 0, juni = 5)
+            const target = Date.UTC(2027, 5, 16, 22, 0, 0);
             const difference = target - now;
-
             const unixTimestamp = Math.floor(target / 1000);
 
             // Als Graspop begonnen is
@@ -60,24 +55,18 @@ export default {
                     ].join('\n'))
                     .setTimestamp();
 
-                return await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [embed]
-                });
+                if (deferred) {
+                    return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+                } else {
+                    return await interaction.reply({ embeds: [embed] });
+                }
             }
 
             // Tijd berekenen
             const totalSeconds = Math.floor(difference / 1000);
-
             const days = Math.floor(totalSeconds / 86400);
-
-            const hours = Math.floor(
-                (totalSeconds % 86400) / 3600
-            );
-
-            const minutes = Math.floor(
-                (totalSeconds % 3600) / 60
-            );
-
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
 
             // Embed maken
@@ -105,20 +94,26 @@ export default {
                     text: 'Graspop Metal Meeting 2027 🤘'
                 });
 
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [embed]
-            });
+            if (deferred) {
+                await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+            } else {
+                await interaction.reply({ embeds: [embed] });
+            }
 
         } catch (error) {
-            console.error(
-                'Failed to generate Graspop countdown:',
-                error
-            );
+            console.error('Failed to generate Graspop countdown:', error);
 
-            await InteractionHelper.safeEditReply(interaction, {
-                content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
-                embeds: []
-            });
+            if (deferred) {
+                await InteractionHelper.safeEditReply(interaction, {
+                    content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
+                    embeds: []
+                });
+            } else {
+                await interaction.reply({
+                    content: '❌ Er ging iets mis bij het genereren van de Graspop countdown.',
+                    ephemeral: true
+                });
+            }
         }
     }
 };
